@@ -28,9 +28,7 @@ import timber.log.Timber
 /**
  * @author conghai on 4/7/20.
  */
-const val EVENT_DOWNLOADING = "downloading"
-const val EVENT_DOWNLOADED = "downloaded"
-const val EVENT_DOWNLOAD_ERROR = "download_error"
+const val EXTRA_MEDIA_DATA = "media_data"
 
 abstract class MusicPlayerService : MediaBrowserServiceCompat() {
     private val attrs = AudioAttributes.Builder()
@@ -47,7 +45,7 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
 
     private val listener = object : Player.Listener {
         override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
-            if (playbackState == Player.STATE_ENDED) {
+            if (playbackState == Player.STATE_ENDED && !isSinglePlayAudio) {
                 skip(true)
             }
         }
@@ -105,6 +103,7 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     private var isForegroundService = false
+    private val mediaItems = mutableListOf<MediaMetadataCompat>()
 
     override fun onCreate() {
         super.onCreate()
@@ -130,6 +129,7 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
 
         notificationBuilder = PlayerNotificationBuilder(this)
         notificationManager = NotificationManagerCompat.from(this)
+        mediaItems.addAll(source.getMusicList())
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -147,16 +147,20 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
 
     override fun onLoadChildren(parentId: String, result: Result<MutableList<MediaBrowserCompat.MediaItem>>) {
         result.sendResult(
-            source.getMusicList().map { MediaBrowserCompat.MediaItem(it.description, MediaBrowserCompat.MediaItem.FLAG_PLAYABLE) }
+            mediaItems.map { MediaBrowserCompat.MediaItem(it.description, MediaBrowserCompat.MediaItem.FLAG_PLAYABLE) }
                 .toMutableList())
     }
 
     override fun onGetRoot(clientPackageName: String, clientUid: Int, rootHints: Bundle?): BrowserRoot {
+        rootHints?.getParcelable<MediaMetadataCompat>(EXTRA_MEDIA_DATA)?.let {
+            mediaItems.clear()
+            mediaItems.add(it)
+        }
         return BrowserRoot(rootId, null)
     }
 
     private fun play(mediaId: String) {
-        val uri = Uri.parse(source.getMusicList().first { it.id == mediaId }.uriString)
+        val uri = Uri.parse(mediaItems.first { it.id == mediaId }.uriString)
         serviceScope.launch {
             if (source.sourceReady(uri)) {
                 prepare(uri, mediaId)
@@ -169,7 +173,7 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
             setAudioAttributes(attrs, true)
             setMediaSource(extractor.createMediaSource(MediaItem.Builder().setUri(uri).build()))
             prepare()
-            mediaSession.setMetadata(source.getMusicList().find { it.id == id })
+            mediaSession.setMetadata(mediaItems.find { it.id == id })
         }
         play()
     }
@@ -191,10 +195,10 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
 
     private fun skip(isNext: Boolean) {
         val currentId = mediaController.metadata.id
-        var currentIndex = source.getMusicList().indexOfFirst { it.id == currentId }
+        var currentIndex = mediaItems.indexOfFirst { it.id == currentId }
         if (isNext) currentIndex++ else currentIndex--
         currentIndex = currentIndex.coerceAtLeast(0)
-        play(source.getMusicList()[currentIndex.rem(source.getMusicList().size)].id)
+        play(mediaItems[currentIndex.rem(mediaItems.size)].id)
     }
 
     private fun stop() {
@@ -278,4 +282,5 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
     abstract val source: MusicSource
     abstract val rootId: String
     abstract val rootActivity: String
+    val isSinglePlayAudio: Boolean = false
 }
