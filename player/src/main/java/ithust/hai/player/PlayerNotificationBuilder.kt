@@ -70,7 +70,6 @@ class PlayerNotificationBuilder(private val context: Context) {
             builder.addAction(playAction)
         }
         builder.addAction(skipToNextAction)
-        builder.color = ContextCompat.getColor(context, R.color.colorPrimary)
 
         val mediaStyle = MediaStyle()
             .setShowActionsInCompactView(1)
