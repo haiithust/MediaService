@@ -282,5 +282,5 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
     abstract val source: MusicSource
     abstract val rootId: String
     abstract val rootActivity: String
-    val isSinglePlayAudio: Boolean = false
+    protected open val isSinglePlayAudio: Boolean = false
 }
