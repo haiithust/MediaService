@@ -25,7 +25,7 @@ const val NOW_PLAYING_NOTIFICATION: Int = 0xb339
 class PlayerNotificationBuilder(
     private val context: Context,
     private val isSinglePlay: Boolean
-    ) {
+) {
     private val platformNotificationManager: NotificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -75,10 +75,13 @@ class PlayerNotificationBuilder(
         if (!isSinglePlay) builder.addAction(skipToNextAction)
 
         val mediaStyle = MediaStyle()
-            .setShowActionsInCompactView(1)
             .setMediaSession(sessionToken)
             .setCancelButtonIntent(stopPendingIntent)
             .setShowCancelButton(true)
+
+        if (!isSinglePlay) {
+            mediaStyle.setShowActionsInCompactView(1)
+        }
 
         return builder.setContentIntent(controller.sessionActivity)
             .setContentTitle(controller.metadata.title)
