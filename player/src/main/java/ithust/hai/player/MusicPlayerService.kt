@@ -12,10 +12,7 @@ import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.media.MediaBrowserServiceCompat
-import com.google.android.exoplayer2.C
-import com.google.android.exoplayer2.MediaItem
-import com.google.android.exoplayer2.Player
-import com.google.android.exoplayer2.SimpleExoPlayer
+import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.audio.AudioAttributes
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
@@ -47,7 +44,10 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
         override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
             if (playbackState == Player.STATE_ENDED) {
                 if (!isSinglePlayAudio) {
-                    updatePlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_NEXT, PLAY_ACTION_SUPPORT)
+                    updatePlaybackState(
+                        PlaybackStateCompat.STATE_SKIPPING_TO_NEXT,
+                        PLAY_ACTION_SUPPORT
+                    )
                     skip(true)
                 } else {
                     updatePlaybackState(PlaybackStateCompat.STATE_NONE, PLAY_ACTION_SUPPORT)
@@ -99,7 +99,7 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
         }
 
         override fun onSetPlaybackSpeed(speed: Float) {
-            player.setPlaybackSpeed(speed)
+            player.playbackParameters = PlaybackParameters(speed)
         }
     }
 
@@ -118,7 +118,8 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
         super.onCreate()
         val userAgent = Util.getUserAgent(this, this::class.java.simpleName)
         extractor = ProgressiveMediaSource.Factory(DefaultDataSourceFactory(this, userAgent))
-        val sessionActivityPendingIntent = PendingIntent.getActivity(this, 0, Intent(this, Class.forName(rootActivity)), 0)
+        val sessionActivityPendingIntent =
+            PendingIntent.getActivity(this, 0, Intent(this, Class.forName(rootActivity)), 0)
 
         mediaSession = MediaSessionCompat(baseContext, this::class.java.simpleName).apply {
             setSessionActivity(sessionActivityPendingIntent)
@@ -154,13 +155,25 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
         super.onDestroy()
     }
 
-    override fun onLoadChildren(parentId: String, result: Result<MutableList<MediaBrowserCompat.MediaItem>>) {
+    override fun onLoadChildren(
+        parentId: String,
+        result: Result<MutableList<MediaBrowserCompat.MediaItem>>
+    ) {
         result.sendResult(
-            mediaItems.map { MediaBrowserCompat.MediaItem(it.description, MediaBrowserCompat.MediaItem.FLAG_PLAYABLE) }
+            mediaItems.map {
+                MediaBrowserCompat.MediaItem(
+                    it.description,
+                    MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+                )
+            }
                 .toMutableList())
     }
 
-    override fun onGetRoot(clientPackageName: String, clientUid: Int, rootHints: Bundle?): BrowserRoot {
+    override fun onGetRoot(
+        clientPackageName: String,
+        clientUid: Int,
+        rootHints: Bundle?
+    ): BrowserRoot {
         rootHints?.getParcelable<MediaMetadataCompat>(EXTRA_MEDIA_DATA)?.let {
             mediaItems.clear()
             mediaItems.add(it)
@@ -213,13 +226,17 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
     private fun stop() {
         player.playWhenReady = false
         mediaSession.setMetadata(NOTHING_PLAYING)
-        updatePlaybackState(PlaybackStateCompat.STATE_NONE, PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID)
+        updatePlaybackState(
+            PlaybackStateCompat.STATE_NONE,
+            PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID
+        )
         mediaSession.isActive = false
     }
 
     private fun repeat(@PlaybackStateCompat.RepeatMode mode: Int) {
         mediaSession.setRepeatMode(mode)
-        player.repeatMode = if (mode == PlaybackStateCompat.REPEAT_MODE_ONE) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+        player.repeatMode =
+            if (mode == PlaybackStateCompat.REPEAT_MODE_ONE) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
     }
 
     private fun updatePlaybackState(@PlaybackStateCompat.State state: Int, actions: Long) {
@@ -228,7 +245,7 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
             PlaybackStateCompat.Builder()
                 .setActions(actions)
                 .setState(
-                    state, player.currentPosition, 1.0f
+                    state, player.currentPosition, player.playbackParameters.speed
                 ).build()
         )
     }
@@ -247,11 +264,12 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
         }
 
         private fun updateNotification(state: PlaybackStateCompat) {
-            val notification = if (mediaController.metadata != null && state.state != PlaybackStateCompat.STATE_NONE) {
-                notificationBuilder.buildNotification(mediaSession.sessionToken)
-            } else {
-                null
-            }
+            val notification =
+                if (mediaController.metadata != null && state.state != PlaybackStateCompat.STATE_NONE) {
+                    notificationBuilder.buildNotification(mediaSession.sessionToken)
+                } else {
+                    null
+                }
 
             when (state.state) {
                 PlaybackStateCompat.STATE_BUFFERING,
