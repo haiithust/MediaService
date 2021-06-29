@@ -45,8 +45,11 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
 
     private val listener = object : Player.Listener {
         override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
-            if (playbackState == Player.STATE_ENDED && !isSinglePlayAudio) {
-                skip(true)
+            if (playbackState == Player.STATE_ENDED) {
+                updatePlaybackState(PlaybackStateCompat.STATE_STOPPED, PLAY_ACTION_SUPPORT)
+                if (!isSinglePlayAudio) {
+                    skip(true)
+                }
             }
         }
 
