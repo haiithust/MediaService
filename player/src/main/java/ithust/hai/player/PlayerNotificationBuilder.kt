@@ -22,7 +22,10 @@ import ithust.hai.player.extensions.title
 const val NOW_PLAYING_CHANNEL: String = "ithust.hai.player.NOW_PLAYING"
 const val NOW_PLAYING_NOTIFICATION: Int = 0xb339
 
-class PlayerNotificationBuilder(private val context: Context) {
+class PlayerNotificationBuilder(
+    private val context: Context,
+    private val isSinglePlay: Boolean
+    ) {
     private val platformNotificationManager: NotificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -63,13 +66,13 @@ class PlayerNotificationBuilder(private val context: Context) {
         val builder = NotificationCompat.Builder(context, NOW_PLAYING_CHANNEL)
             .setColor(Color.WHITE)
 
-        builder.addAction(skipToPreviousAction)
+        if (!isSinglePlay) builder.addAction(skipToPreviousAction)
         if (playbackState.isPlaying) {
             builder.addAction(pauseAction)
         } else if (playbackState.isPlayEnabled) {
             builder.addAction(playAction)
         }
-        builder.addAction(skipToNextAction)
+        if (!isSinglePlay) builder.addAction(skipToNextAction)
 
         val mediaStyle = MediaStyle()
             .setShowActionsInCompactView(1)

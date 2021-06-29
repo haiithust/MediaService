@@ -46,9 +46,11 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
     private val listener = object : Player.Listener {
         override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
             if (playbackState == Player.STATE_ENDED) {
-                updatePlaybackState(PlaybackStateCompat.STATE_STOPPED, PLAY_ACTION_SUPPORT)
                 if (!isSinglePlayAudio) {
+                    updatePlaybackState(PlaybackStateCompat.STATE_SKIPPING_TO_NEXT, PLAY_ACTION_SUPPORT)
                     skip(true)
+                } else {
+                    updatePlaybackState(PlaybackStateCompat.STATE_NONE, PLAY_ACTION_SUPPORT)
                 }
             }
         }
@@ -95,6 +97,10 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
             Timber.d("onSetRepeatMode")
             repeat(repeatMode)
         }
+
+        override fun onSetPlaybackSpeed(speed: Float) {
+            player.setPlaybackSpeed(speed)
+        }
     }
 
     protected lateinit var mediaSession: MediaSessionCompat
@@ -130,7 +136,7 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
             it.registerCallback(MediaControllerCallback())
         }
 
-        notificationBuilder = PlayerNotificationBuilder(this)
+        notificationBuilder = PlayerNotificationBuilder(this, isSinglePlayAudio)
         notificationManager = NotificationManagerCompat.from(this)
         mediaItems.addAll(source.getMusicList())
     }
