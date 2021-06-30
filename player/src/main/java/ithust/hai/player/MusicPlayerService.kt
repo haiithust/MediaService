@@ -289,10 +289,10 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
                 }
                 else -> {
                     if (isForegroundService) {
-                        stopForeground(false)
                         isForegroundService = false
 
                         if (notification != null) {
+                            stopForeground(false)
                             notificationManager.notify(NOW_PLAYING_NOTIFICATION, notification)
                         } else {
                             stopForeground(true)
