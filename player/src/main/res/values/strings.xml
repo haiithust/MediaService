@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="notification_channel">Baby care noise</string>
+    <string name="player_notification_channel">Media Player</string>
     <string name="duration_unknown" translatable="false">--:--</string>
     <string name="duration_format" translatable="false">%d:%02d</string>
 </resources>

@@ -152,6 +152,7 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
         serviceScope.cancel()
         mediaSession.release()
         player.release()
+        notificationManager.cancel(NOW_PLAYING_NOTIFICATION_ID)
         super.onDestroy()
     }
 
@@ -275,15 +276,15 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
                 PlaybackStateCompat.STATE_BUFFERING,
                 PlaybackStateCompat.STATE_PLAYING -> {
                     if (notification != null) {
-                        notificationManager.notify(NOW_PLAYING_NOTIFICATION, notification)
-
                         if (!isForegroundService) {
                             ContextCompat.startForegroundService(
                                 applicationContext,
                                 Intent(applicationContext, this@MusicPlayerService.javaClass)
                             )
-                            startForeground(NOW_PLAYING_NOTIFICATION, notification)
+                            startForeground(NOW_PLAYING_NOTIFICATION_ID, notification)
                             isForegroundService = true
+                        } else {
+                            notificationManager.notify(NOW_PLAYING_NOTIFICATION_ID, notification)
                         }
                     }
                 }
@@ -293,7 +294,7 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
 
                         if (notification != null) {
                             stopForeground(false)
-                            notificationManager.notify(NOW_PLAYING_NOTIFICATION, notification)
+                            notificationManager.notify(NOW_PLAYING_NOTIFICATION_ID, notification)
                         } else {
                             stopForeground(true)
                         }

@@ -12,7 +12,6 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat.*
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import androidx.media.app.NotificationCompat.MediaStyle
 import androidx.media.session.MediaButtonReceiver
 import ithust.hai.player.extensions.isPlayEnabled
@@ -20,7 +19,7 @@ import ithust.hai.player.extensions.isPlaying
 import ithust.hai.player.extensions.title
 
 const val NOW_PLAYING_CHANNEL: String = "ithust.hai.player.NOW_PLAYING"
-const val NOW_PLAYING_NOTIFICATION: Int = 0xb339
+const val NOW_PLAYING_NOTIFICATION_ID: Int = 0xb339
 
 class PlayerNotificationBuilder(
     private val context: Context,
@@ -74,25 +73,30 @@ class PlayerNotificationBuilder(
         }
         if (!isSinglePlay) builder.addAction(skipToNextAction)
 
-        val mediaStyle = MediaStyle()
-            .setMediaSession(sessionToken)
-            .setCancelButtonIntent(stopPendingIntent)
-            .setShowCancelButton(true)
-
-        if (!isSinglePlay) {
-            mediaStyle.setShowActionsInCompactView(1)
-        }
-
-        return builder.setContentIntent(controller.sessionActivity)
+        builder.setContentIntent(controller.sessionActivity)
             .setContentTitle(controller.metadata.title)
             .setDeleteIntent(stopPendingIntent)
             .setOnlyAlertOnce(true)
             .setColorized(true)
             .setSmallIcon(R.drawable.ic_notification)
-            .setStyle(mediaStyle)
-            .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.drawable.ic_baby))
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
+
+        if (!isSinglePlay) {
+            builder.setStyle(
+                MediaStyle()
+                    .setMediaSession(sessionToken)
+                    .setShowActionsInCompactView(1)
+                    .setCancelButtonIntent(stopPendingIntent)
+                    .setShowCancelButton(true)
+            ).setLargeIcon(
+                    BitmapFactory.decodeResource(
+                        context.resources,
+                        R.drawable.ic_notification_large
+                    )
+                )
+        }
+        return builder.build()
     }
 
     private fun shouldCreateNowPlayingChannel() =
@@ -106,10 +110,10 @@ class PlayerNotificationBuilder(
     private fun createNowPlayingChannel() {
         val notificationChannel = NotificationChannel(
             NOW_PLAYING_CHANNEL,
-            context.getString(R.string.notification_channel),
+            context.getString(R.string.player_notification_channel),
             NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = context.getString(R.string.notification_channel)
+            description = context.getString(R.string.player_notification_channel)
         }
 
         platformNotificationManager.createNotificationChannel(notificationChannel)
