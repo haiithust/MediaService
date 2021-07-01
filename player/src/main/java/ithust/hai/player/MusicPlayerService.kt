@@ -100,6 +100,7 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
 
         override fun onSetPlaybackSpeed(speed: Float) {
             player.playbackParameters = PlaybackParameters(speed)
+            updatePlaybackState(mediaController.playbackState.state, mediaController.playbackState.actions)
         }
     }
 
