@@ -47,3 +47,18 @@ dependencies {
     implementation "com.google.android.exoplayer:extension-mediasession:2.14.1"
     implementation 'com.jakewharton.timber:timber:4.7.1'
 }
+
+
+afterEvaluate {
+    publishing {
+        publications {
+            // Creates a Maven publication called "release".
+            release(MavenPublication) {
+                from components.release
+                groupId = 'com.github.haiithust'
+                artifactId = 'MediaService'
+                version = '1.0.17'
+            }
+        }
+    }
+}
