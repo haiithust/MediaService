@@ -1,7 +1,9 @@
 package ithust.hai.player
 
+import android.Manifest
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
@@ -9,6 +11,7 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.media.MediaBrowserServiceCompat
@@ -30,7 +33,7 @@ const val EXTRA_MEDIA_DATA = "media_data"
 abstract class MusicPlayerService : MediaBrowserServiceCompat() {
     private val attrs = AudioAttributes.Builder()
         .setUsage(C.USAGE_MEDIA)
-        .setContentType(C.CONTENT_TYPE_MUSIC)
+        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
         .build()
 
     private val player: SimpleExoPlayer by lazy(LazyThreadSafetyMode.NONE) {
@@ -41,7 +44,8 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
     }
 
     private val listener = object : Player.Listener {
-        override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
             if (playbackState == Player.STATE_ENDED) {
                 if (!isSinglePlayAudio) {
                     updatePlaybackState(
@@ -55,7 +59,11 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
             }
         }
 
-        override fun onPositionDiscontinuity(reason: Int) {
+        override fun onPositionDiscontinuity(
+            oldPosition: Player.PositionInfo,
+            newPosition: Player.PositionInfo,
+            reason: Int
+        ) {
             if (reason == Player.DISCONTINUITY_REASON_AUTO_TRANSITION) {
                 updatePlaybackState(PlaybackStateCompat.STATE_PLAYING, PLAY_ACTION_SUPPORT)
             }
@@ -290,6 +298,13 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
                             startForeground(NOW_PLAYING_NOTIFICATION_ID, notification)
                             isForegroundService = true
                         } else {
+                            if (ActivityCompat.checkSelfPermission(
+                                    this@MusicPlayerService,
+                                    Manifest.permission.POST_NOTIFICATIONS
+                                ) != PackageManager.PERMISSION_GRANTED
+                            ) {
+                                return
+                            }
                             notificationManager.notify(NOW_PLAYING_NOTIFICATION_ID, notification)
                         }
                     }
@@ -299,10 +314,10 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
                         isForegroundService = false
 
                         if (notification != null) {
-                            stopForeground(false)
+                            stopForeground(STOP_FOREGROUND_DETACH)
                             notificationManager.notify(NOW_PLAYING_NOTIFICATION_ID, notification)
                         } else {
-                            stopForeground(true)
+                            stopForeground(STOP_FOREGROUND_REMOVE)
                         }
                     }
                     if (state.state == PlaybackStateCompat.STATE_NONE) {
