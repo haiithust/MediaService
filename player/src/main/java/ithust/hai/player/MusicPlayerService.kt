@@ -108,12 +108,18 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
 
         override fun onSeekTo(pos: Long) {
             player.seekTo(pos)
-            updatePlaybackState(mediaController.playbackState.state, mediaController.playbackState.actions)
+            updatePlaybackState(
+                mediaController.playbackState.state,
+                mediaController.playbackState.actions
+            )
         }
 
         override fun onSetPlaybackSpeed(speed: Float) {
             player.playbackParameters = PlaybackParameters(speed)
-            updatePlaybackState(mediaController.playbackState.state, mediaController.playbackState.actions)
+            updatePlaybackState(
+                mediaController.playbackState.state,
+                mediaController.playbackState.actions
+            )
         }
     }
 
@@ -133,9 +139,17 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
         val userAgent = Util.getUserAgent(this, this::class.java.simpleName)
         extractor = ProgressiveMediaSource.Factory(DefaultDataSourceFactory(this, userAgent))
         val sessionActivityPendingIntent =
-            PendingIntent.getActivity(this, 0, Intent(this, Class.forName(rootActivity)), PendingIntent.FLAG_UPDATE_CURRENT)
+            PendingIntent.getActivity(
+                this,
+                0,
+                Intent(this, Class.forName(rootActivity)),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
 
-        mediaSession = MediaSessionCompat(baseContext, this::class.java.simpleName).apply {
+        mediaSession = MediaSessionCompat(
+            baseContext,
+            this::class.java.simpleName
+        ).apply {
             setSessionActivity(sessionActivityPendingIntent)
             setPlaybackState(
                 PlaybackStateCompat.Builder()
@@ -309,6 +323,7 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
                         }
                     }
                 }
+
                 else -> {
                     if (isForegroundService) {
                         isForegroundService = false
