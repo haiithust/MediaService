@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    compileSdkVersion 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "ithust.hai.mediaservice"
