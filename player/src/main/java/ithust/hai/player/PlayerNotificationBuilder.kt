@@ -7,8 +7,10 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Build
+import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import android.support.v4.media.session.PlaybackStateCompat.*
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
@@ -54,13 +56,18 @@ class PlayerNotificationBuilder(
     private val stopPendingIntent =
         MediaButtonReceiver.buildMediaButtonPendingIntent(context, ACTION_STOP)
 
-    fun buildNotification(sessionToken: MediaSessionCompat.Token): Notification {
+    fun buildNotification(
+        sessionToken: MediaSessionCompat.Token,
+        playbackState: PlaybackStateCompat,
+        metadata: MediaMetadataCompat,
+    ): Notification {
         if (shouldCreateNowPlayingChannel()) {
             createNowPlayingChannel()
         }
 
+        // A fresh MediaControllerCompat may not be connected yet, so its playbackState / metadata can be null.
+        // Use the state the caller already has instead of re-reading it.
         val controller = MediaControllerCompat(context, sessionToken)
-        val playbackState = controller.playbackState
 
         val builder = NotificationCompat.Builder(context, NOW_PLAYING_CHANNEL)
             .setColor(Color.WHITE)
@@ -74,7 +81,7 @@ class PlayerNotificationBuilder(
         if (!isSinglePlay) builder.addAction(skipToNextAction)
 
         builder.setContentIntent(controller.sessionActivity)
-            .setContentTitle(controller.metadata.title)
+            .setContentTitle(metadata.title)
             .setDeleteIntent(stopPendingIntent)
             .setOnlyAlertOnce(true)
             .setColorized(true)

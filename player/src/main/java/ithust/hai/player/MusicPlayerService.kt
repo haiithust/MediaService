@@ -293,9 +293,10 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
         }
 
         private fun updateNotification(state: PlaybackStateCompat) {
+            val metadata = mediaController.metadata
             val notification =
-                if (mediaController.metadata != null && state.state != PlaybackStateCompat.STATE_NONE) {
-                    notificationBuilder.buildNotification(mediaSession.sessionToken)
+                if (metadata != null && state.state != PlaybackStateCompat.STATE_NONE) {
+                    notificationBuilder.buildNotification(mediaSession.sessionToken, state, metadata)
                 } else {
                     null
                 }
