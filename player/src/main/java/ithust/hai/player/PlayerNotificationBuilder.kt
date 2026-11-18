@@ -106,6 +106,18 @@ class PlayerNotificationBuilder(
         return builder.build()
     }
 
+    /** Minimal notification for a start that must enter the foreground but has nothing to show. */
+    fun buildPlaceholderNotification(): Notification {
+        if (shouldCreateNowPlayingChannel()) {
+            createNowPlayingChannel()
+        }
+        return NotificationCompat.Builder(context, NOW_PLAYING_CHANNEL)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setOnlyAlertOnce(true)
+            .setSilent(true)
+            .build()
+    }
+
     private fun shouldCreateNowPlayingChannel() =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !nowPlayingChannelExists()
 

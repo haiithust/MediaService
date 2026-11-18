@@ -57,7 +57,7 @@ afterEvaluate {
                 from components.release
                 groupId = 'com.github.haiithust'
                 artifactId = 'MediaService'
-                version = '1.0.17'
+                version = '1.0.27'
             }
         }
     }

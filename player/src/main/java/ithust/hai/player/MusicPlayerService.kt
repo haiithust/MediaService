@@ -132,6 +132,12 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     private var isForegroundService = false
+
+    // Set in onDestroy. A playback-state callback still queued then must not touch foreground state: its
+    // startForegroundService() would create a new service instance, and startForeground() on this dead instance
+    // is ignored by the system, so the new instance would crash with ForegroundServiceDidNotStartInTimeException.
+    private var isDestroyed = false
+    private lateinit var controllerCallback: MediaControllerCompat.Callback
     private val mediaItems = mutableListOf<MediaMetadataCompat>()
 
     override fun onCreate() {
@@ -162,7 +168,8 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
             setSessionToken(sessionToken)
         }
         mediaController = MediaControllerCompat(this, mediaSession).also {
-            it.registerCallback(MediaControllerCallback())
+            controllerCallback = MediaControllerCallback()
+            it.registerCallback(controllerCallback)
         }
 
         notificationBuilder = PlayerNotificationBuilder(this, isSinglePlayAudio)
@@ -175,7 +182,31 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
         stopSelf()
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val result = super.onStartCommand(intent, flags, startId)
+        // Every start comes from startForegroundService(). If this instance is not in the foreground and has
+        // nothing playing, the startForeground() that followed that call did not reach it (it went to a destroyed
+        // instance, or playback stopped first): satisfy the system with a placeholder, then leave the foreground
+        // and stop again instead of crashing.
+        val state = mediaController.playbackState?.state ?: PlaybackStateCompat.STATE_NONE
+        if (!isForegroundService && state == PlaybackStateCompat.STATE_NONE) {
+            // A null intent is a sticky restart (plain start, no foreground promise): just stop.
+            if (intent != null) {
+                try {
+                    startForeground(NOW_PLAYING_NOTIFICATION_ID, notificationBuilder.buildPlaceholderNotification())
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                } catch (e: IllegalStateException) {
+                    Timber.w(e, "startForeground for an idle start failed")
+                }
+            }
+            stopSelf(startId)
+        }
+        return result
+    }
+
     override fun onDestroy() {
+        isDestroyed = true
+        mediaController.unregisterCallback(controllerCallback)
         stop()
         serviceScope.cancel()
         mediaSession.release()
@@ -293,6 +324,7 @@ abstract class MusicPlayerService : MediaBrowserServiceCompat() {
         }
 
         private fun updateNotification(state: PlaybackStateCompat) {
+            if (isDestroyed) return
             val metadata = mediaController.metadata
             val notification =
                 if (metadata != null && state.state != PlaybackStateCompat.STATE_NONE) {
